@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<strings>
+  <string id="30001">Add Website</string>
+  <string id="30002">Remove Website</string>
+  <string id="30003">Title</string>
+  <string id="30004">URL</string>
+  <string id="30006">Edit Website Settings</string>
+  <string id="30007">Thumbnail</string>
+  <string id="30009">Stop XBMC playback?</string>
+</strings>
