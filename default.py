@@ -18,12 +18,18 @@ translation = addon.getLocalizedString
 osWin = xbmc.getCondVisibility('system.platform.windows')
 osOsx = xbmc.getCondVisibility('system.platform.osx')
 osLinux = xbmc.getCondVisibility('system.platform.linux')
+useOwnProfile = addon.getSetting("useOwnProfile") == "true"
+useCustomPath = addon.getSetting("useCustomPath") == "true"
+customPath = str(addon.getSetting("customPath"))
 
 userDataFolder = xbmc.translatePath("special://profile/addon_data/"+addonID)
+profileFolder = os.path.join(userDataFolder, 'profile')
 siteFolder = os.path.join(userDataFolder, 'sites')
 
 if not os.path.isdir(userDataFolder):
     os.mkdir(userDataFolder)
+if not os.path.isdir(profileFolder):
+    os.mkdir(profileFolder)
 if not os.path.isdir(siteFolder):
     os.mkdir(siteFolder)
 
@@ -85,34 +91,53 @@ def addSite(site="", title=""):
     xbmc.executebuiltin("Container.Refresh")
 
 
+def getFullPath(path, url):
+    profile = ""
+    if useOwnProfile:
+        profile = ' --user-data-dir="'+profileFolder+'"'
+    return '"'+path+'"'+profile+' --no-default-browser-check --no-first-run --kiosk "'+url+'"'
+
+
 def showSite(url, stopPlayback):
     if stopPlayback == "yes":
         xbmc.Player().stop()
     if osWin:
         path = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
         path64 = 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe'
-        if os.path.exists(path):
-            fullUrl = '"'+path+'" -kiosk "'+url+'"'
+        if useCustomPath and os.path.exists(customPath):
+            fullUrl = getFullPath(customPath, url)
+            subprocess.Popen(fullUrl, shell=False)
+        elif os.path.exists(path):
+            fullUrl = getFullPath(path, url)
             subprocess.Popen(fullUrl, shell=False)
         elif os.path.exists(path64):
-            fullUrl = '"'+path64+'" -kiosk "'+url+'"'
+            fullUrl = getFullPath(path64, url)
             subprocess.Popen(fullUrl, shell=False)
         else:
-            xbmc.executebuiltin('XBMC.Notification(Info:,'+str(translation(30002))+'!,5000)')
+            xbmc.executebuiltin('XBMC.Notification(Info:,'+str(translation(30005))+'!,5000)')
+            addon.openSettings()
     elif osOsx:
         path = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-        fullUrl = '"'+path+'" --kiosk "'+url+'"'
-        if os.path.exists(path):
+        if useCustomPath and os.path.exists(customPath):
+            fullUrl = getFullPath(customPath, url)
+            subprocess.Popen(fullUrl, shell=True)
+        elif os.path.exists(path):
+            fullUrl = getFullPath(path, url)
             subprocess.Popen(fullUrl, shell=True)
         else:
-            xbmc.executebuiltin('XBMC.Notification(Info:,'+str(translation(30002))+'!,5000)')
+            xbmc.executebuiltin('XBMC.Notification(Info:,'+str(translation(30005))+'!,5000)')
+            addon.openSettings()
     elif osLinux:
         path = "/usr/bin/google-chrome"
-        fullUrl = path+' --kiosk "'+url+'"'
-        if os.path.exists(path):
+        if useCustomPath and os.path.exists(customPath):
+            fullUrl = getFullPath(customPath, url)
+            subprocess.Popen(fullUrl, shell=True)
+        elif os.path.exists(path):
+            fullUrl = getFullPath(path, url)
             subprocess.Popen(fullUrl, shell=True)
         else:
-            xbmc.executebuiltin('XBMC.Notification(Info:,'+str(translation(30002))+'!,5000)')
+            xbmc.executebuiltin('XBMC.Notification(Info:,'+str(translation(30005))+'!,5000)')
+            addon.openSettings()
 
 
 def removeSite(title):

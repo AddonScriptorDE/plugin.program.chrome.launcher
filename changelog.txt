@@ -1,2 +1,9 @@
 1.0.0
 - Initial release
+1.0.1
+- Added setting to use custom chrome path
+- Added setting to use own chrome user profile
+1.0.2
+- Fixed bug with --user-data-dir parameter
+- Added --no-default-browser-check parameter
+- Added --no-first-run parameter
