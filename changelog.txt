@@ -7,3 +7,15 @@
 - Fixed bug with --user-data-dir parameter
 - Added --no-default-browser-check parameter
 - Added --no-first-run parameter
+1.0.3
+- Added --start-maximized parameter
+- Added --disable-translate parameter
+- Added --disable-new-tab-first-run parameter
+1.0.4
+- Added setting to start a custom user script before chrome
+1.0.5
+- Added optional delay after executing custom user script
+1.0.6
+- Added setting to launch chrome without kiosk mode
+1.0.7
+- Added (internal) custom User-Agent setting

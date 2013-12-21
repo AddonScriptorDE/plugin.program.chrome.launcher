@@ -1,5 +1,8 @@
 <settings>
     <setting id="useCustomPath" type="bool" label="30010" default="false"/>
     <setting id="customPath" type="file" label="30011" enable="eq(-1,true)" default=""/>
+    <setting id="startScriptBefore" type="bool" label="30013" default="false"/>
+    <setting id="scriptPath" type="file" label="30014" enable="eq(-1,true)" default=""/>
+    <setting id="scriptDelay" type="number" label="30015" enable="eq(-2,true)" default="0"/>
     <setting id="useOwnProfile" type="bool" label="30012" default="false"/>
 </settings>

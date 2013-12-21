@@ -20,7 +20,10 @@ osOsx = xbmc.getCondVisibility('system.platform.osx')
 osLinux = xbmc.getCondVisibility('system.platform.linux')
 useOwnProfile = addon.getSetting("useOwnProfile") == "true"
 useCustomPath = addon.getSetting("useCustomPath") == "true"
+startScriptBefore = addon.getSetting("startScriptBefore") == "true"
 customPath = str(addon.getSetting("customPath"))
+scriptPath = str(addon.getSetting("scriptPath"))
+scriptDelay = int(addon.getSetting("scriptDelay"))
 
 userDataFolder = xbmc.translatePath("special://profile/addon_data/"+addonID)
 profileFolder = os.path.join(userDataFolder, 'profile')
@@ -45,6 +48,7 @@ def index():
             title = ""
             url = ""
             thumb = ""
+            kiosk = "yes"
             stopPlayback = "no"
             for line in fh.readlines():
                 entry = line[:line.find("=")]
@@ -55,20 +59,23 @@ def index():
                     url = content.strip()
                 elif entry == "thumb":
                     thumb = content.strip()
+                elif entry == "kiosk":
+                    kiosk = content.strip()
                 elif entry == "stopPlayback":
                     stopPlayback = content.strip()
             fh.close()
-            addSiteDir(title, url, 'showSite', thumb, stopPlayback)
-    addDir("[ Vimeo Couchmode ]", vimeoUrl, 'showSite', os.path.join(addonPath, "vimeo.png"), "yes")
-    addDir("[ Youtube Leanback ]", youtubeUrl, 'showSite', os.path.join(addonPath, "youtube.png"), "yes")
+            addSiteDir(title, url, 'showSite', thumb, stopPlayback, kiosk)
+    addDir("[ Vimeo Couchmode ]", vimeoUrl, 'showSite', os.path.join(addonPath, "vimeo.png"), "yes", "yes")
+    addDir("[ Youtube Leanback ]", youtubeUrl, 'showSite', os.path.join(addonPath, "youtube.png"), "yes", "yes")
     addDir("[B]- "+translation(30001)+"[/B]", "", 'addSite', "")
     xbmcplugin.endOfDirectory(pluginhandle)
 
 
 def addSite(site="", title=""):
     if site:
-        content = "title="+title+"\nurl="+site+"\nthumb=DefaultFolder.png\nstopPlayback=no"
-        fh = open(os.path.join(siteFolder, title+".link"), 'w')
+        filename = getFileName(title)
+        content = "title="+title+"\nurl="+site+"\nthumb=DefaultFolder.png\nstopPlayback=no\nkiosk=yes"
+        fh = open(os.path.join(siteFolder, filename+".link"), 'w')
         fh.write(content)
         fh.close()
     else:
@@ -84,56 +91,81 @@ def addSite(site="", title=""):
                 keyboard.doModal()
                 if keyboard.isConfirmed() and keyboard.getText():
                     stopPlayback = keyboard.getText()
-                    content = "title="+title+"\nurl="+url+"\nthumb=DefaultFolder.png\nstopPlayback="+stopPlayback
-                    fh = open(os.path.join(siteFolder, title+".link"), 'w')
-                    fh.write(content)
-                    fh.close()
+                    keyboard = xbmc.Keyboard('yes', translation(30016))
+                    keyboard.doModal()
+                    if keyboard.isConfirmed() and keyboard.getText():
+                        kiosk = keyboard.getText()
+                        content = "title="+title+"\nurl="+url+"\nthumb=DefaultFolder.png\nstopPlayback="+stopPlayback+"\nkiosk="+kiosk
+                        fh = open(os.path.join(siteFolder, getFileName(title)+".link"), 'w')
+                        fh.write(content)
+                        fh.close()
     xbmc.executebuiltin("Container.Refresh")
 
 
-def getFullPath(path, url):
+def getFileName(title):
+    return (''.join(c for c in unicode(title, 'utf-8') if c not in '/\\:?"*|<>')).strip()
+
+
+def getFullPath(path, url, useKiosk, userAgent):
     profile = ""
     if useOwnProfile:
-        profile = ' --user-data-dir="'+profileFolder+'"'
-    return '"'+path+'"'+profile+' --no-default-browser-check --no-first-run --kiosk "'+url+'"'
+        profile = '--user-data-dir="'+profileFolder+'" '
+    kiosk = ""
+    if useKiosk=="yes":
+        kiosk = '--kiosk '
+    if userAgent:
+        userAgent = '--user-agent="'+userAgent+'" '
+    return '"'+path+'" '+profile+userAgent+'--start-maximized --disable-translate --disable-new-tab-first-run --no-default-browser-check --no-first-run '+kiosk+'"'+url+'"'
 
 
-def showSite(url, stopPlayback):
+def showSite(url, stopPlayback, kiosk, userAgent):
     if stopPlayback == "yes":
         xbmc.Player().stop()
     if osWin:
+        if startScriptBefore and scriptPath:
+            subprocess.Popen(scriptPath, shell=False)
+            if scriptDelay>0:
+                xbmc.sleep(scriptDelay*1000)
         path = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
         path64 = 'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe'
         if useCustomPath and os.path.exists(customPath):
-            fullUrl = getFullPath(customPath, url)
+            fullUrl = getFullPath(customPath, url, kiosk, userAgent)
             subprocess.Popen(fullUrl, shell=False)
         elif os.path.exists(path):
-            fullUrl = getFullPath(path, url)
+            fullUrl = getFullPath(path, url, kiosk, userAgent)
             subprocess.Popen(fullUrl, shell=False)
         elif os.path.exists(path64):
-            fullUrl = getFullPath(path64, url)
+            fullUrl = getFullPath(path64, url, kiosk, userAgent)
             subprocess.Popen(fullUrl, shell=False)
         else:
             xbmc.executebuiltin('XBMC.Notification(Info:,'+str(translation(30005))+'!,5000)')
             addon.openSettings()
     elif osOsx:
+        if startScriptBefore and scriptPath:
+            subprocess.Popen(scriptPath, shell=True)
+            if scriptDelay>0:
+                xbmc.sleep(scriptDelay*1000)
         path = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
         if useCustomPath and os.path.exists(customPath):
-            fullUrl = getFullPath(customPath, url)
+            fullUrl = getFullPath(customPath, url, kiosk, userAgent)
             subprocess.Popen(fullUrl, shell=True)
         elif os.path.exists(path):
-            fullUrl = getFullPath(path, url)
+            fullUrl = getFullPath(path, url, kiosk, userAgent)
             subprocess.Popen(fullUrl, shell=True)
         else:
             xbmc.executebuiltin('XBMC.Notification(Info:,'+str(translation(30005))+'!,5000)')
             addon.openSettings()
     elif osLinux:
+        if startScriptBefore and scriptPath:
+            subprocess.Popen(scriptPath, shell=True)
+            if scriptDelay>0:
+                xbmc.sleep(scriptDelay*1000)
         path = "/usr/bin/google-chrome"
         if useCustomPath and os.path.exists(customPath):
-            fullUrl = getFullPath(customPath, url)
+            fullUrl = getFullPath(customPath, url, kiosk, userAgent)
             subprocess.Popen(fullUrl, shell=True)
         elif os.path.exists(path):
-            fullUrl = getFullPath(path, url)
+            fullUrl = getFullPath(path, url, kiosk, userAgent)
             subprocess.Popen(fullUrl, shell=True)
         else:
             xbmc.executebuiltin('XBMC.Notification(Info:,'+str(translation(30005))+'!,5000)')
@@ -141,15 +173,17 @@ def showSite(url, stopPlayback):
 
 
 def removeSite(title):
-    os.remove(os.path.join(siteFolder, title+".link"))
+    os.remove(os.path.join(siteFolder, getFileName(title)+".link"))
     xbmc.executebuiltin("Container.Refresh")
 
 
 def editSite(title):
-    file = os.path.join(siteFolder, title+".link")
+    filenameOld = getFileName(title)
+    file = os.path.join(siteFolder, filenameOld+".link")
     fh = open(file, 'r')
     title = ""
     url = ""
+    kiosk = "yes"
     thumb = "DefaultFolder.png"
     stopPlayback = "no"
     for line in fh.readlines():
@@ -159,6 +193,8 @@ def editSite(title):
             title = content.strip()
         elif entry == "url":
             url = content.strip()
+        elif entry == "kiosk":
+            kiosk = content.strip()
         elif entry == "thumb":
             thumb = content.strip()
         elif entry == "stopPlayback":
@@ -178,12 +214,16 @@ def editSite(title):
             keyboard.doModal()
             if keyboard.isConfirmed() and keyboard.getText():
                 stopPlayback = keyboard.getText()
-                content = "title="+title+"\nurl="+url+"\nthumb="+thumb+"\nstopPlayback="+stopPlayback
-                fh = open(os.path.join(siteFolder, title+".link"), 'w')
-                fh.write(content)
-                fh.close()
-                if title != oldTitle:
-                    os.remove(os.path.join(siteFolder, oldTitle+".link"))
+                keyboard = xbmc.Keyboard(kiosk, translation(30016))
+                keyboard.doModal()
+                if keyboard.isConfirmed() and keyboard.getText():
+                    kiosk = keyboard.getText()
+                    content = "title="+title+"\nurl="+url+"\nthumb="+thumb+"\nstopPlayback="+stopPlayback+"\nkiosk="+kiosk
+                    fh = open(os.path.join(siteFolder, getFileName(title)+".link"), 'w')
+                    fh.write(content)
+                    fh.close()
+                    if title != oldTitle:
+                        os.remove(os.path.join(siteFolder, filenameOld+".link"))
     xbmc.executebuiltin("Container.Refresh")
 
 
@@ -198,8 +238,8 @@ def parameters_string_to_dict(parameters):
     return paramDict
 
 
-def addDir(name, url, mode, iconimage, stopPlayback=""):
-    u = sys.argv[0]+"?url="+urllib.quote_plus(url)+"&mode="+urllib.quote_plus(mode)+"&stopPlayback="+urllib.quote_plus(stopPlayback)
+def addDir(name, url, mode, iconimage, stopPlayback="", kiosk=""):
+    u = sys.argv[0]+"?url="+urllib.quote_plus(url)+"&mode="+urllib.quote_plus(mode)+"&stopPlayback="+urllib.quote_plus(stopPlayback)+"&kiosk="+urllib.quote_plus(kiosk)
     ok = True
     liz = xbmcgui.ListItem(name, iconImage="DefaultFolder.png", thumbnailImage=iconimage)
     liz.setInfo(type="Video", infoLabels={"Title": name})
@@ -207,8 +247,8 @@ def addDir(name, url, mode, iconimage, stopPlayback=""):
     return ok
 
 
-def addSiteDir(name, url, mode, iconimage, stopPlayback):
-    u = sys.argv[0]+"?url="+urllib.quote_plus(url)+"&mode="+urllib.quote_plus(mode)+"&stopPlayback="+urllib.quote_plus(stopPlayback)
+def addSiteDir(name, url, mode, iconimage, stopPlayback, kiosk):
+    u = sys.argv[0]+"?url="+urllib.quote_plus(url)+"&mode="+urllib.quote_plus(mode)+"&stopPlayback="+urllib.quote_plus(stopPlayback)+"&kiosk="+urllib.quote_plus(kiosk)
     ok = True
     liz = xbmcgui.ListItem(name, iconImage="DefaultFolder.png", thumbnailImage=iconimage)
     liz.setInfo(type="Video", infoLabels={"Title": name})
@@ -221,12 +261,14 @@ mode = urllib.unquote_plus(params.get('mode', ''))
 name = urllib.unquote_plus(params.get('name', ''))
 url = urllib.unquote_plus(params.get('url', ''))
 stopPlayback = urllib.unquote_plus(params.get('stopPlayback', 'no'))
+kiosk = urllib.unquote_plus(params.get('kiosk', 'yes'))
+userAgent = urllib.unquote_plus(params.get('userAgent', ''))
 
 
 if mode == 'addSite':
     addSite()
 elif mode == 'showSite':
-    showSite(url, stopPlayback)
+    showSite(url, stopPlayback, kiosk, userAgent)
 elif mode == 'removeSite':
     removeSite(url)
 elif mode == 'editSite':

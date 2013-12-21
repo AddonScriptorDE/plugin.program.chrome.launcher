@@ -4,9 +4,12 @@
   <string id="30002">Website entfernen</string>
   <string id="30003">Titel</string>
   <string id="30005">Chrome nicht gefunden</string>
-  <string id="30006">Website Eintellungen ändern</string>
+  <string id="30006">Website Einstellungen ändern</string>
   <string id="30009">XBMC Wiedergabe stoppen?</string>
   <string id="30010">Benutzerdefinierten Chrome Pfad nutzen</string>
-  <string id="30011">Benutzerdefinierter Pfad</string>
+  <string id="30011">Chrome Pfad</string>
   <string id="30012">Eigenes Nutzerprofil nutzen (Kann beim ersten Start etwas dauern)</string>
+  <string id="30013">Benutzerdefiniertes Skript vor Chrome starten</string>
+  <string id="30014">Script Pfad</string>
+  <string id="30015">Pause nach Skript (in Sekunden)</string>
 </strings>
